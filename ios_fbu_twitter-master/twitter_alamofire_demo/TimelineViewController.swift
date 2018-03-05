@@ -13,9 +13,13 @@ class TimelineViewController: UIViewController, UITableViewDelegate, UITableView
     var tweets: [Tweet] = []
     
     @IBOutlet weak var tableView: UITableView!
+    var refreshControl : UIRefreshControl!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(refreshControllerAction(_refreshController:)), for: .valueChanged)
         
         tableView.dataSource = self
         tableView.delegate = self
@@ -23,14 +27,9 @@ class TimelineViewController: UIViewController, UITableViewDelegate, UITableView
         tableView.rowHeight = UITableViewAutomaticDimension
         tableView.estimatedRowHeight = 100
         
-        APIManager.shared.getHomeTimeLine { (tweets, error) in
-            if let tweets = tweets {
-                self.tweets = tweets
-                self.tableView.reloadData()
-            } else if let error = error {
-                print("Error getting home timeline: " + error.localizedDescription)
-            }
-        }
+        tableView.insertSubview(refreshControl, at: 0)
+        fetchPosts()
+        
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -49,6 +48,25 @@ class TimelineViewController: UIViewController, UITableViewDelegate, UITableView
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
+    func fetchPosts(){
+        APIManager.shared.getHomeTimeLine { (tweets, error) in
+            
+            if let tweets = tweets{
+                self.tweets = tweets
+                self.tableView.reloadData()
+            }else if let error = error{
+                print("Error reloading tweets: " + error.localizedDescription)
+                
+            }
+        }
+        self.refreshControl.endRefreshing()
+    }
+    
+    @objc func refreshControllerAction(_refreshController: UIRefreshControl){
+        fetchPosts()
+    }
+
+        
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
@@ -58,7 +76,6 @@ class TimelineViewController: UIViewController, UITableViewDelegate, UITableView
     @IBAction func didTapLogout(_ sender: Any) {
         APIManager.shared.logout()
     }
-    
     
     /*
      // MARK: - Navigation
